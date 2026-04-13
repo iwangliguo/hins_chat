@@ -189,18 +189,6 @@ const ChatPage = () => {
     }
   };
 
-  const handleNewChat = () => {
-    setMessages([
-      {
-        id: '1',
-        role: 'assistant',
-        content: '你好！我是 hins 的 AI 助手，有什么我可以帮你的吗？',
-        timestamp: new Date(),
-      },
-    ]);
-    setConversationId('');
-  };
-
   const formatTime = (date: Date) => {
     return date.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
   };

@@ -329,7 +329,7 @@ const ChatPage = () => {
       <aside className={`chat-sidebar ${sidebarOpen ? 'open' : ''}`}>
         <div className="sidebar-header">
           <div className="sidebar-title">
-            <img src="/planet3.svg" alt="hins" className="sidebar-icon" />
+            <img src="/cat3.jpg" alt="hins" className="sidebar-icon" />
             hins chat
           </div>
           <button className="new-chat-btn" onClick={createNewConversation}>
@@ -406,7 +406,7 @@ const ChatPage = () => {
           {isLoading && (
             <div className="message assistant">
               <div className="message-avatar ai">
-                <img src="/planet1.svg" alt="AI" />
+                <img src="/cat1.jpg" alt="AI" />
               </div>
               <div className="message-content">
                 <div className="message-bubble">

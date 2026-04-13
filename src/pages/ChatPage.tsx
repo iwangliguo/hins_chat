@@ -40,7 +40,7 @@ interface Message {
 }
 
 // Dify API 配置
-const DIFY_API_URL = 'http://150.158.57.162:8081/v1/chat-messages';
+const DIFY_API_URL = '/api/chat';
 
 const ChatPage = () => {
   const [messages, setMessages] = useState<Message[]>([
@@ -149,7 +149,6 @@ const ChatPage = () => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'Bearer app-oYVKHjo6fnc6CNOjUwD6uYqc',
         },
         body: JSON.stringify({
           query: userMessage.content,

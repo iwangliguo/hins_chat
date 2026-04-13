@@ -392,7 +392,7 @@ const ChatPage = () => {
             <div key={msg.id} className={`message ${msg.role}`}>
               <div className={`message-avatar ${msg.role === 'assistant' ? 'ai' : ''}`}>
                 <img 
-                  src={msg.role === 'assistant' ? '/planet1.svg' : '/planet2.svg'} 
+                  src={msg.role === 'assistant' ? '/cat1.jpg' : '/cat2.jpg'} 
                   alt={msg.role === 'assistant' ? 'AI' : 'User'} 
                 />
               </div>

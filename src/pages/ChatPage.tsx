@@ -329,7 +329,7 @@ const ChatPage = () => {
       <aside className={`chat-sidebar ${sidebarOpen ? 'open' : ''}`}>
         <div className="sidebar-header">
           <div className="sidebar-title">
-            <img src="/cat3.jpg" alt="hins" className="sidebar-icon" />
+            <img src="/cat4.jpg" alt="hins" className="sidebar-icon" />
             hins chat
           </div>
           <button className="new-chat-btn" onClick={createNewConversation}>
@@ -380,7 +380,7 @@ const ChatPage = () => {
               <path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/>
             </svg>
           </button>
-          <img src="/赞恩.jpg" alt="hins" className="chat-header-avatar" />
+          <img src="/cat3.jpg" alt="hins" className="chat-header-avatar" />
           <div className="chat-header-info">
             <h1>hins chat</h1>
             <p>在线</p>

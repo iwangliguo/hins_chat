@@ -1,6 +1,13 @@
 import { useState, useRef, useEffect } from 'react';
 import '../styles/ChatPage.css';
 
+interface Message {
+  id: string;
+  role: 'user' | 'assistant';
+  content: string;
+  timestamp: Date;
+}
+
 // Web Speech API 类型声明
 interface SpeechRecognitionEvent extends Event {
   results: SpeechRecognitionResultList;
@@ -32,22 +39,14 @@ declare global {
   }
 }
 
-interface Message {
-  id: string;
-  role: 'user' | 'assistant';
-  content: string;
-  timestamp: Date;
-}
-
-// Dify API 配置
-const DIFY_API_URL = '/api/chat';
+const API_URL = '/api/chat';
 
 const ChatPage = () => {
   const [messages, setMessages] = useState<Message[]>([
     {
       id: '1',
       role: 'assistant',
-      content: '欢迎来到hins的数字世界',
+      content: '你好！我是 hins 的 AI 助手，有什么我可以帮你的吗？',
       timestamp: new Date(),
     },
   ]);
@@ -70,14 +69,9 @@ const ChatPage = () => {
 
   // 初始化语音识别
   useEffect(() => {
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SpeechRecognition) {
-      setVoiceSupported(false);
-      return;
-    }
-
     const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognitionAPI) {
+      setVoiceSupported(false);
       return;
     }
     const recognition = new SpeechRecognitionAPI();
@@ -111,7 +105,7 @@ const ChatPage = () => {
       setVoiceError('您的浏览器不支持语音识别，请使用 Chrome 或 Safari');
       return;
     }
-    
+
     setVoiceError('');
     if (recognitionRef.current && !isRecording) {
       try {
@@ -145,7 +139,7 @@ const ChatPage = () => {
     setIsLoading(true);
 
     try {
-      const response = await fetch(DIFY_API_URL, {
+      const response = await fetch(API_URL, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -195,84 +189,136 @@ const ChatPage = () => {
     }
   };
 
+  const handleNewChat = () => {
+    setMessages([
+      {
+        id: '1',
+        role: 'assistant',
+        content: '你好！我是 hins 的 AI 助手，有什么我可以帮你的吗？',
+        timestamp: new Date(),
+      },
+    ]);
+    setConversationId('');
+  };
+
+  const formatTime = (date: Date) => {
+    return date.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
+  };
+
   return (
     <div className="chat-page">
-      <div className="chat-page-header">
-        <img src="/赞恩.jpg" alt="hins" className="chat-page-avatar" />
-        <h1>Talk to hins</h1>
-        <p>AI 助手</p>
-      </div>
-
-      <div className="chat-page-messages">
-        {messages.map((msg) => (
-          <div
-            key={msg.id}
-            className={`dify-message ${msg.role === 'user' ? 'user' : 'assistant'}`}
-          >
-            {msg.role === 'assistant' && (
-              <div className="dify-message-avatar">
-                <img src="/赞恩.jpg" alt="AI" width="32" height="32" />
-              </div>
-            )}
-            <div className="dify-message-content">
-              <p>{msg.content}</p>
-              <span className="dify-message-time">
-                {msg.timestamp.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}
-              </span>
-            </div>
-          </div>
-        ))}
-
-        {isLoading && (
-          <div className="dify-message assistant">
-            <div className="dify-message-avatar">
-              <img src="/赞恩.jpg" alt="AI" width="32" height="32" />
-            </div>
-            <div className="dify-message-content">
-              <div className="dify-loading-dots">
-                <span></span>
-                <span></span>
-                <span></span>
-              </div>
-            </div>
-          </div>
-        )}
-        <div ref={messagesEndRef} />
-      </div>
-
-      {voiceError && (
-        <div className="voice-error">{voiceError}</div>
-      )}
-      <div className="chat-page-input">
-        <textarea
-          value={inputValue}
-          onChange={(e) => setInputValue(e.target.value)}
-          onKeyPress={handleKeyPress}
-          placeholder={isRecording ? '正在聆听...' : '输入消息...'}
-          rows={1}
-        />
-        <button
-          className={`voice-button ${isRecording ? 'recording' : ''}`}
-          onClick={isRecording ? stopVoiceInput : startVoiceInput}
-          disabled={isLoading}
-          title={isRecording ? '点击停止录音' : '点击开始语音输入'}
-        >
-          {isRecording ? (
-            <svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20">
-              <path d="M6 6h12v12H6z"/>
-            </svg>
-          ) : (
+      {/* Left Sidebar */}
+      <aside className="chat-sidebar">
+        <div className="sidebar-header">
+          <h2>
             <svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20">
               <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5.91-3c-.49 0-.9.36-.98.85C16.52 14.2 14.47 16 12 16s-4.52-1.8-4.93-4.15c-.08-.49-.49-.85-.98-.85-.61 0-1.09.54-1 1.14.49 3 2.89 5.35 5.91 5.78V20c0 .55.45 1 1 1s1-.45 1-1v-2.08c3.02-.43 5.42-2.78 5.91-5.78.1-.6-.39-1.14-1-1.14z"/>
             </svg>
+            Talk to hins
+          </h2>
+        </div>
+        <div className="sidebar-content">
+          <div className="sidebar-tip">
+            开始新对话，探索 AI 的无限可能
+          </div>
+        </div>
+      </aside>
+
+      {/* Main Chat Area */}
+      <main className="chat-main">
+        <header className="chat-header">
+          <img src="/赞恩.jpg" alt="hins" className="chat-header-avatar" />
+          <div className="chat-header-info">
+            <h1>AI 助手</h1>
+            <p>在线</p>
+          </div>
+        </header>
+
+        <div className="chat-messages">
+          {messages.map((msg) => (
+            <div key={msg.id} className={`message ${msg.role}`}>
+              <div className={`message-avatar ${msg.role === 'assistant' ? 'ai' : ''}`}>
+                {msg.role === 'assistant' ? (
+                  <svg viewBox="0 0 24 24" fill="white" width="18" height="18">
+                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/>
+                  </svg>
+                ) : (
+                  <svg viewBox="0 0 24 24" fill="currentColor" width="18" height="18">
+                    <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+                  </svg>
+                )}
+              </div>
+              <div className="message-content">
+                <div className="message-bubble">{msg.content}</div>
+                <div className="message-time">{formatTime(msg.timestamp)}</div>
+              </div>
+            </div>
+          ))}
+
+          {isLoading && (
+            <div className="message assistant">
+              <div className="message-avatar ai">
+                <svg viewBox="0 0 24 24" fill="white" width="18" height="18">
+                  <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/>
+                </svg>
+              </div>
+              <div className="message-content">
+                <div className="message-bubble">
+                  <div className="loading-dots">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                  </div>
+                </div>
+              </div>
+            </div>
           )}
-        </button>
-        <button onClick={handleSend} disabled={isLoading || !inputValue.trim()}>
-          <svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20">
-            <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
-          </svg>
-        </button>
-      </div>
+
+          <div ref={messagesEndRef} />
+        </div>
+
+        <div className="chat-input-area">
+          {voiceError && <div className="voice-error">{voiceError}</div>}
+          <div className="chat-input-wrapper">
+            <textarea
+              className="chat-input"
+              value={inputValue}
+              onChange={(e) => setInputValue(e.target.value)}
+              onKeyPress={handleKeyPress}
+              placeholder={isRecording ? '正在聆听...' : '输入消息...'}
+              rows={1}
+            />
+            <div className="input-actions">
+              <button
+                className={`input-btn voice-btn ${isRecording ? 'recording' : ''}`}
+                onClick={isRecording ? stopVoiceInput : startVoiceInput}
+                disabled={isLoading || !voiceSupported}
+                title={isRecording ? '点击停止录音' : '点击开始语音输入'}
+              >
+                {isRecording ? (
+                  <svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20">
+                    <path d="M6 6h12v12H6z"/>
+                  </svg>
+                ) : (
+                  <svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20">
+                    <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5.91-3c-.49 0-.9.36-.98.85C16.52 14.2 14.47 16 12 16s-4.52-1.8-4.93-4.15c-.08-.49-.49-.85-.98-.85-.61 0-1.09.54-1 1.14.49 3 2.89 5.35 5.91 5.78V20c0 .55.45 1 1 1s1-.45 1-1v-2.08c3.02-.43 5.42-2.78 5.91-5.78.1-.6-.39-1.14-1-1.14z"/>
+                  </svg>
+                )}
+              </button>
+              <button
+                className="input-btn send-btn"
+                onClick={handleSend}
+                disabled={isLoading || !inputValue.trim()}
+                title="发送消息"
+              >
+                <svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20">
+                  <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+      </main>
     </div>
   );
 };

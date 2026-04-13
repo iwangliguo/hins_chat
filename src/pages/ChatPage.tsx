@@ -53,7 +53,7 @@ const STORAGE_KEY = 'hins-chat-conversations';
 const defaultWelcome: Message = {
   id: '1',
   role: 'assistant',
-  content: '你好！我是 hins 的 AI 助手，有什么我可以帮你的吗？',
+  content: '欢迎来到hins chat，如果你相信宿命论，这就是hins的数字生命载体',
   timestamp: new Date(),
 };
 
@@ -129,9 +129,11 @@ const ChatPage = () => {
   };
 
   // 更新当前对话的标题（取第一条用户消息的前20个字符）
-  const updateConversationTitle = (newMessages: Message[]) => {
+  const updateConversationTitle = (newMessages: Message[], userFirstMessage?: string) => {
     if (!currentConversationId) return;
-    const userMsg = newMessages.find((m) => m.role === 'user');
+    const userMsg = userFirstMessage 
+      ? { content: userFirstMessage }
+      : newMessages.find((m) => m.role === 'user');
     if (userMsg && conversations.find((c) => c.id === currentConversationId)?.title === '新对话') {
       const title = userMsg.content.slice(0, 20) + (userMsg.content.length > 20 ? '...' : '');
       const newConversations = conversations.map((c) =>
@@ -226,11 +228,11 @@ const ChatPage = () => {
     setInputValue('');
     setIsLoading(true);
 
-    // 更新对话标题
+    // 更新对话标题（用用户的第一句话命名）
     if (!currentConversationId) {
       createNewConversation();
     }
-    updateConversationTitle(newMessages);
+    updateConversationTitle(newMessages, userMessage.content);
 
     try {
       const response = await fetch(API_URL, {
@@ -323,6 +325,12 @@ const ChatPage = () => {
       {/* Left Sidebar */}
       <aside className={`chat-sidebar ${sidebarOpen ? 'open' : ''}`}>
         <div className="sidebar-header">
+          <div className="sidebar-title">
+            <svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20">
+              <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5.91-3c-.49 0-.9.36-.98.85C16.52 14.2 14.47 16 12 16s-4.52-1.8-4.93-4.15c-.08-.49-.49-.85-.98-.85-.61 0-1.09.54-1 1.14.49 3 2.89 5.35 5.91 5.78V20c0 .55.45 1 1 1s1-.45 1-1v-2.08c3.02-.43 5.42-2.78 5.91-5.78.1-.6-.39-1.14-1-1.14z"/>
+            </svg>
+            hins chat
+          </div>
           <button className="new-chat-btn" onClick={createNewConversation}>
             <svg viewBox="0 0 24 24" fill="currentColor" width="18" height="18">
               <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>
@@ -373,7 +381,7 @@ const ChatPage = () => {
           </button>
           <img src="/赞恩.jpg" alt="hins" className="chat-header-avatar" />
           <div className="chat-header-info">
-            <h1>AI 助手</h1>
+            <h1>hins chat</h1>
             <p>在线</p>
           </div>
         </header>

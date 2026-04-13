@@ -26,6 +26,18 @@
   border-bottom: 1px solid var(--border-color);
 }
 
+.sidebar-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border-color);
+}
+
 .new-chat-btn {
   width: 100%;
   display: flex;

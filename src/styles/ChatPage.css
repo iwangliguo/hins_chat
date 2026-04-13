@@ -38,6 +38,11 @@
   border-bottom: 1px solid var(--border-color);
 }
 
+.sidebar-icon {
+  width: 24px;
+  height: 24px;
+}
+
 .new-chat-btn {
   width: 100%;
   display: flex;
@@ -257,7 +262,7 @@
 }
 
 .message-avatar.ai {
-  background: linear-gradient(135deg, #94d2bd 0%, #7ec8b8 100%);
+  background: var(--bg-secondary);
 }
 
 .message-content {

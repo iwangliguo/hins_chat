@@ -228,11 +228,10 @@ const ChatPage = () => {
     setInputValue('');
     setIsLoading(true);
 
-    // 更新对话标题（用用户的第一句话命名）
+    // 如果是新对话，先创建
     if (!currentConversationId) {
       createNewConversation();
     }
-    updateConversationTitle(newMessages, userMessage.content);
 
     try {
       const response = await fetch(API_URL, {
@@ -292,6 +291,10 @@ const ChatPage = () => {
       }
     } finally {
       setIsLoading(false);
+      // 回复完成后更新对话标题
+      if (currentConversationId) {
+        updateConversationTitle(messages, userMessage.content);
+      }
     }
   };
 
@@ -326,9 +329,7 @@ const ChatPage = () => {
       <aside className={`chat-sidebar ${sidebarOpen ? 'open' : ''}`}>
         <div className="sidebar-header">
           <div className="sidebar-title">
-            <svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20">
-              <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5.91-3c-.49 0-.9.36-.98.85C16.52 14.2 14.47 16 12 16s-4.52-1.8-4.93-4.15c-.08-.49-.49-.85-.98-.85-.61 0-1.09.54-1 1.14.49 3 2.89 5.35 5.91 5.78V20c0 .55.45 1 1 1s1-.45 1-1v-2.08c3.02-.43 5.42-2.78 5.91-5.78.1-.6-.39-1.14-1-1.14z"/>
-            </svg>
+            <img src="/planet3.svg" alt="hins" className="sidebar-icon" />
             hins chat
           </div>
           <button className="new-chat-btn" onClick={createNewConversation}>
@@ -390,15 +391,10 @@ const ChatPage = () => {
           {messages.map((msg) => (
             <div key={msg.id} className={`message ${msg.role}`}>
               <div className={`message-avatar ${msg.role === 'assistant' ? 'ai' : ''}`}>
-                {msg.role === 'assistant' ? (
-                  <svg viewBox="0 0 24 24" fill="white" width="18" height="18">
-                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/>
-                  </svg>
-                ) : (
-                  <svg viewBox="0 0 24 24" fill="currentColor" width="18" height="18">
-                    <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
-                  </svg>
-                )}
+                <img 
+                  src={msg.role === 'assistant' ? '/planet1.svg' : '/planet2.svg'} 
+                  alt={msg.role === 'assistant' ? 'AI' : 'User'} 
+                />
               </div>
               <div className="message-content">
                 <div className="message-bubble">{msg.content}</div>
@@ -410,9 +406,7 @@ const ChatPage = () => {
           {isLoading && (
             <div className="message assistant">
               <div className="message-avatar ai">
-                <svg viewBox="0 0 24 24" fill="white" width="18" height="18">
-                  <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/>
-                </svg>
+                <img src="/planet1.svg" alt="AI" />
               </div>
               <div className="message-content">
                 <div className="message-bubble">

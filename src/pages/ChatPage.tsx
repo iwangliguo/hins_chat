@@ -144,6 +144,16 @@ const ChatPage = () => {
     setInputValue('');
     setIsLoading(true);
 
+    // 创建空的 AI 回复消息
+    const assistantMessageId = (Date.now() + 1).toString();
+    const assistantMessage: Message = {
+      id: assistantMessageId,
+      role: 'assistant',
+      content: '',
+      timestamp: new Date(),
+    };
+    setMessages((prev) => [...prev, assistantMessage]);
+
     try {
       const response = await fetch(DIFY_API_URL, {
         method: 'POST',
@@ -153,7 +163,7 @@ const ChatPage = () => {
         body: JSON.stringify({
           query: userMessage.content,
           inputs: {},
-          response_mode: 'blocking',
+          response_mode: 'streaming',
           user: 'website-visitor',
           conversation_id: conversationId,
         }),
@@ -161,28 +171,54 @@ const ChatPage = () => {
 
       if (!response.ok) throw new Error('API request failed');
 
-      const data = await response.json();
-      
-      if (data.conversation_id) {
-        setConversationId(data.conversation_id);
+      const reader = response.body?.getReader();
+      const decoder = new TextDecoder();
+      let fullAnswer = '';
+
+      if (!reader) throw new Error('Failed to read stream');
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        const chunk = decoder.decode(value);
+        const lines = chunk.split('\n');
+
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            try {
+              const data = JSON.parse(line.slice(6));
+              
+              // 保存 conversation_id
+              if (data.conversation_id) {
+                setConversationId(data.conversation_id);
+              }
+
+              // 增量更新回复内容
+              if (data.answer) {
+                fullAnswer = data.answer;
+                setMessages((prev) =>
+                  prev.map((msg) =>
+                    msg.id === assistantMessageId
+                      ? { ...msg, content: fullAnswer }
+                      : msg
+                  )
+                );
+              }
+            } catch (e) {
+              // 忽略解析错误
+            }
+          }
+        }
       }
-
-      const assistantMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        role: 'assistant',
-        content: data.answer || '抱歉，我暂时无法回答这个问题。',
-        timestamp: new Date(),
-      };
-
-      setMessages((prev) => [...prev, assistantMessage]);
     } catch (error) {
-      const errorMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        role: 'assistant',
-        content: '抱歉，连接失败了。请稍后再试。',
-        timestamp: new Date(),
-      };
-      setMessages((prev) => [...prev, errorMessage]);
+      setMessages((prev) =>
+        prev.map((msg) =>
+          msg.id === assistantMessageId
+            ? { ...msg, content: '抱歉，连接失败了。请稍后再试。' }
+            : msg
+        )
+      );
     } finally {
       setIsLoading(false);
     }

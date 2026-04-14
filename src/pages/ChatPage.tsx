@@ -16,6 +16,26 @@ interface Conversation {
   updatedAt: Date;
 }
 
+// 从 localStorage 读取并转换日期
+const loadConversations = (): Conversation[] => {
+  const stored = localStorage.getItem(STORAGE_KEY);
+  if (!stored) return [];
+  try {
+    const parsed = JSON.parse(stored);
+    return parsed.map((conv: any) => ({
+      ...conv,
+      createdAt: new Date(conv.createdAt),
+      updatedAt: new Date(conv.updatedAt),
+      messages: conv.messages.map((msg: any) => ({
+        ...msg,
+        timestamp: new Date(msg.timestamp),
+      })),
+    }));
+  } catch {
+    return [];
+  }
+};
+
 // Web Speech API 类型声明
 interface SpeechRecognitionEvent extends Event {
   results: SpeechRecognitionResultList;
@@ -73,14 +93,11 @@ const ChatPage = () => {
 
   // 加载本地存储的对话
   useEffect(() => {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored) {
-      try {
-        const parsed = JSON.parse(stored);
-        setConversations(parsed);
-      } catch (e) {
-        console.error('Failed to parse conversations:', e);
-      }
+    const loaded = loadConversations();
+    if (loaded.length > 0) {
+      setConversations(loaded);
+      setCurrentConversationId(loaded[0].id);
+      setMessages(loaded[0].messages);
     }
   }, []);
 
@@ -99,8 +116,10 @@ const ChatPage = () => {
       createdAt: new Date(),
       updatedAt: new Date(),
     };
-    const newConversations = [newConversation, ...conversations];
-    saveConversations(newConversations);
+    const currentConversations = loadConversations();
+    const newConversations = [newConversation, ...currentConversations];
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(newConversations));
+    setConversations(newConversations);
     setCurrentConversationId(newConversation.id);
     setMessages(newConversation.messages);
     setConversationId('');
@@ -115,6 +134,16 @@ const ChatPage = () => {
       setMessages(conv.messages);
       setConversationId('');
       setSidebarOpen(false);
+    } else {
+      // 从 localStorage 重新查找（处理状态延迟情况）
+      const loaded = loadConversations();
+      const freshConv = loaded.find((c) => c.id === convId);
+      if (freshConv) {
+        setCurrentConversationId(convId);
+        setMessages(freshConv.messages);
+        setConversationId('');
+        setSidebarOpen(false);
+      }
     }
   };
 
@@ -125,26 +154,6 @@ const ChatPage = () => {
     saveConversations(newConversations);
     if (currentConversationId === convId) {
       createNewConversation();
-    }
-  };
-
-  // 更新当前对话的标题（取第一条用户消息的前20个字符）
-  const updateConversationTitle = (newMessages: Message[], userFirstMessage?: string) => {
-    if (!currentConversationId) return;
-    const userMsg = userFirstMessage 
-      ? { content: userFirstMessage }
-      : newMessages.find((m) => m.role === 'user');
-    if (userMsg && conversations.find((c) => c.id === currentConversationId)?.title === '新对话') {
-      const title = userMsg.content.slice(0, 20) + (userMsg.content.length > 20 ? '...' : '');
-      const newConversations = conversations.map((c) =>
-        c.id === currentConversationId ? { ...c, title, updatedAt: new Date() } : c
-      );
-      saveConversations(newConversations);
-    } else {
-      const newConversations = conversations.map((c) =>
-        c.id === currentConversationId ? { ...c, updatedAt: new Date() } : c
-      );
-      saveConversations(newConversations);
     }
   };
 
@@ -336,11 +345,22 @@ const ChatPage = () => {
           // 打字完成后保存到本地存储
           if (currentConversationId) {
             const finalMessages = [...newMessages, { ...streamingMessage, content: finalContent }];
-            const newConversations = conversations.map((c) =>
+            const currentConversations = loadConversations();
+            const newConversations = currentConversations.map((c) =>
               c.id === currentConversationId ? { ...c, messages: finalMessages, updatedAt: new Date() } : c
             );
-            saveConversations(newConversations);
-            updateConversationTitle(messages, userMessage.content);
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(newConversations));
+            setConversations(newConversations);
+            // 更新标题
+            const conv = newConversations.find((c) => c.id === currentConversationId);
+            if (conv && conv.title === '新对话') {
+              const title = userMessage.content.slice(0, 20) + (userMessage.content.length > 20 ? '...' : '');
+              const titledConversations = newConversations.map((c) =>
+                c.id === currentConversationId ? { ...c, title } : c
+              );
+              localStorage.setItem(STORAGE_KEY, JSON.stringify(titledConversations));
+              setConversations(titledConversations);
+            }
           }
         });
       }
@@ -356,10 +376,12 @@ const ChatPage = () => {
       setMessages(finalMessages);
 
       if (currentConversationId) {
-        const newConversations = conversations.map((c) =>
+        const currentConversations = loadConversations();
+        const newConversations = currentConversations.map((c) =>
           c.id === currentConversationId ? { ...c, messages: finalMessages, updatedAt: new Date() } : c
         );
-        saveConversations(newConversations);
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(newConversations));
+        setConversations(newConversations);
       }
     }
   };

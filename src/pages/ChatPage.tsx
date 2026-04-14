@@ -233,6 +233,43 @@ const ChatPage = () => {
       createNewConversation();
     }
 
+    // 创建空的助手消息用于流式更新
+    const assistantMessageId = (Date.now() + 1).toString();
+    const streamingMessage: Message = {
+      id: assistantMessageId,
+      role: 'assistant',
+      content: '',
+      timestamp: new Date(),
+    };
+    setMessages([...newMessages, streamingMessage]);
+
+    let assistantContent = '';
+    let conversationIdFromServer = conversationId;
+
+    // 打字机效果的延迟函数
+    const typeWriter = (text: string, callback: () => void) => {
+      let index = 0;
+      const speed = 35; // 每字符延迟 35ms
+      
+      const type = () => {
+        if (index < text.length) {
+          setMessages((prev) => {
+            const updated = prev.map((msg) =>
+              msg.id === assistantMessageId
+                ? { ...msg, content: text.slice(0, index + 1) }
+                : msg
+            );
+            return updated;
+          });
+          index++;
+          setTimeout(type, speed);
+        } else {
+          callback();
+        }
+      };
+      type();
+    };
+
     try {
       const response = await fetch(API_URL, {
         method: 'POST',
@@ -242,7 +279,7 @@ const ChatPage = () => {
         body: JSON.stringify({
           query: userMessage.content,
           inputs: {},
-          response_mode: 'blocking',
+          response_mode: 'streaming',
           user: 'website-visitor',
           conversation_id: conversationId,
         }),
@@ -250,32 +287,77 @@ const ChatPage = () => {
 
       if (!response.ok) throw new Error('API request failed');
 
-      const data = await response.json();
+      const reader = response.body?.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
 
-      if (data.conversation_id) {
-        setConversationId(data.conversation_id);
+      if (!reader) throw new Error('Failed to read response stream');
+
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split('\n');
+          buffer = lines.pop() || '';
+
+          for (const line of lines) {
+            if (line.startsWith('data: ')) {
+              const dataStr = line.slice(6);
+              if (dataStr === '[DONE]') continue;
+
+              try {
+                const data = JSON.parse(dataStr);
+                if (data.event === 'message' || data.event === 'agent_message') {
+                  assistantContent += data.answer || '';
+                  setMessages((prev) => {
+                    const updated = prev.map((msg) =>
+                      msg.id === assistantMessageId
+                        ? { ...msg, content: assistantContent }
+                        : msg
+                    );
+                    return updated;
+                  });
+                }
+                if (data.conversation_id) {
+                  conversationIdFromServer = data.conversation_id;
+                  setConversationId(data.conversation_id);
+                }
+              } catch (e) {
+                // 忽略解析错误
+              }
+            }
+          }
+        }
+      } finally {
+        reader.releaseLock();
       }
 
-      const assistantMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        role: 'assistant',
-        content: data.answer || '抱歉，我暂时无法回答这个问题。',
-        timestamp: new Date(),
-      };
+      // 等待一小段时间确保内容接收完整
+      await new Promise(resolve => setTimeout(resolve, 200));
 
-      const finalMessages = [...newMessages, assistantMessage];
-      setMessages(finalMessages);
-
-      // 更新本地存储
-      if (currentConversationId) {
-        const newConversations = conversations.map((c) =>
-          c.id === currentConversationId ? { ...c, messages: finalMessages, updatedAt: new Date() } : c
-        );
-        saveConversations(newConversations);
+      // 使用打字机效果重新显示内容
+      const finalContent = assistantContent || '抱歉，我暂时无法回答这个问题。';
+      setIsLoading(false);
+      
+      if (finalContent.length > 0) {
+        typeWriter(finalContent, () => {
+          // 打字完成后保存到本地存储
+          if (currentConversationId) {
+            const finalMessages = [...newMessages, { ...streamingMessage, content: finalContent }];
+            const newConversations = conversations.map((c) =>
+              c.id === currentConversationId ? { ...c, messages: finalMessages, updatedAt: new Date() } : c
+            );
+            saveConversations(newConversations);
+            updateConversationTitle(messages, userMessage.content);
+          }
+        });
       }
     } catch (error) {
+      setIsLoading(false);
       const errorMessage: Message = {
-        id: (Date.now() + 1).toString(),
+        id: assistantMessageId,
         role: 'assistant',
         content: '抱歉，连接失败了。请稍后再试。',
         timestamp: new Date(),
@@ -288,12 +370,6 @@ const ChatPage = () => {
           c.id === currentConversationId ? { ...c, messages: finalMessages, updatedAt: new Date() } : c
         );
         saveConversations(newConversations);
-      }
-    } finally {
-      setIsLoading(false);
-      // 回复完成后更新对话标题
-      if (currentConversationId) {
-        updateConversationTitle(messages, userMessage.content);
       }
     }
   };
@@ -397,28 +473,16 @@ const ChatPage = () => {
                 />
               </div>
               <div className="message-content">
-                <div className="message-bubble">{msg.content}</div>
+                <div className={`message-bubble ${msg.role === 'assistant' && isLoading && msg.content === '' ? 'streaming' : ''}`}>
+                  {msg.content}
+                  {msg.role === 'assistant' && isLoading && msg.content === '' && (
+                    <span className="cursor-blink">|</span>
+                  )}
+                </div>
                 <div className="message-time">{formatTime(msg.timestamp)}</div>
               </div>
             </div>
           ))}
-
-          {isLoading && (
-            <div className="message assistant">
-              <div className="message-avatar ai">
-                <img src="/cat1.jpg" alt="AI" />
-              </div>
-              <div className="message-content">
-                <div className="message-bubble">
-                  <div className="loading-dots">
-                    <span></span>
-                    <span></span>
-                    <span></span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
 
           <div ref={messagesEndRef} />
         </div>

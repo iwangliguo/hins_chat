@@ -351,15 +351,18 @@ const ChatPage = () => {
             );
             localStorage.setItem(STORAGE_KEY, JSON.stringify(newConversations));
             setConversations(newConversations);
-            // 更新标题
+            // 更新标题 - 使用对话中第一条用户消息
             const conv = newConversations.find((c) => c.id === currentConversationId);
             if (conv && conv.title === '新对话') {
-              const title = userMessage.content.slice(0, 20) + (userMessage.content.length > 20 ? '...' : '');
-              const titledConversations = newConversations.map((c) =>
-                c.id === currentConversationId ? { ...c, title } : c
-              );
-              localStorage.setItem(STORAGE_KEY, JSON.stringify(titledConversations));
-              setConversations(titledConversations);
+              const firstUserMessage = finalMessages.find((m: Message) => m.role === 'user');
+              if (firstUserMessage) {
+                const title = firstUserMessage.content.slice(0, 20) + (firstUserMessage.content.length > 20 ? '...' : '');
+                const titledConversations = newConversations.map((c) =>
+                  c.id === currentConversationId ? { ...c, title } : c
+                );
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(titledConversations));
+                setConversations(titledConversations);
+              }
             }
           }
         });

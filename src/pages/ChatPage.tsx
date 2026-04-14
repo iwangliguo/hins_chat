@@ -53,7 +53,7 @@ const STORAGE_KEY = 'hins-chat-conversations';
 const defaultWelcome: Message = {
   id: '1',
   role: 'assistant',
-  content: '欢迎来到hins chat，如果你相信宿命论，这就是hins的数字生命载体',
+  content: '非彼无我，非我无所取。',
   timestamp: new Date(),
 };
 
@@ -248,7 +248,7 @@ const ChatPage = () => {
     // 打字机效果的延迟函数
     const typeWriter = (text: string, callback: () => void) => {
       let index = 0;
-      const speed = 35; // 每字符延迟 35ms
+      const speed = 70; // 每字符延迟 70ms
       
       const type = () => {
         if (index < text.length) {

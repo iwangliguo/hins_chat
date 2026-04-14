@@ -244,7 +244,6 @@ const ChatPage = () => {
     setMessages([...newMessages, streamingMessage]);
 
     let assistantContent = '';
-    let conversationIdFromServer = conversationId;
 
     // 打字机效果的延迟函数
     const typeWriter = (text: string, callback: () => void) => {
@@ -311,17 +310,8 @@ const ChatPage = () => {
                 const data = JSON.parse(dataStr);
                 if (data.event === 'message' || data.event === 'agent_message') {
                   assistantContent += data.answer || '';
-                  setMessages((prev) => {
-                    const updated = prev.map((msg) =>
-                      msg.id === assistantMessageId
-                        ? { ...msg, content: assistantContent }
-                        : msg
-                    );
-                    return updated;
-                  });
                 }
                 if (data.conversation_id) {
-                  conversationIdFromServer = data.conversation_id;
                   setConversationId(data.conversation_id);
                 }
               } catch (e) {
@@ -335,7 +325,7 @@ const ChatPage = () => {
       }
 
       // 等待一小段时间确保内容接收完整
-      await new Promise(resolve => setTimeout(resolve, 200));
+      await new Promise(resolve => setTimeout(resolve, 100));
 
       // 使用打字机效果重新显示内容
       const finalContent = assistantContent || '抱歉，我暂时无法回答这个问题。';
